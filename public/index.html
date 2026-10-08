@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Albion Marklet</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23d4a94e'/><text x='16' y='22' font-size='16' text-anchor='middle' font-family='Georgia' fill='%2314110c'>M</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <div>
+        <h1>Albion Marklet</h1>
+        <p class="tag">Market profit finder</p>
+      </div>
+    </div>
+    <div class="status" id="status">Loading…</div>
+    <div class="top-actions">
+      <label class="inline">Server
+        <select id="server">
+          <option value="europe">Europe</option>
+          <option value="west">Americas</option>
+          <option value="east">Asia</option>
+        </select>
+      </label>
+      <button id="refresh" class="btn">Refresh data</button>
+      <button id="toggle-settings" class="btn ghost" aria-expanded="false">Settings</button>
+    </div>
+    <div class="progress" id="progress" hidden><div class="bar"></div></div>
+  </header>
+
+  <section class="settings" id="settings" hidden>
+    <div class="settings-grid">
+      <fieldset>
+        <legend>Fees</legend>
+        <label class="check"><input type="checkbox" data-s="premium"> Premium (4% tax, else 8%)</label>
+        <label>Setup fee % <input type="number" step="0.1" data-s="setupFee"></label>
+        <label>Station fee (per 100 nutrition) <input type="number" step="10" data-s="stationFee"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Trading style</legend>
+        <label>Buy materials
+          <select data-s="buyMode"><option value="instant">Instant (from sell orders)</option><option value="order">Buy order (top + 1)</option></select>
+        </label>
+        <label>Sell products
+          <select data-s="sellMode"><option value="order">Sell order (lowest − 1)</option><option value="instant">Instant (to buy orders)</option></select>
+        </label>
+        <label>Material source
+          <select data-s="matSource"><option value="best">Cheapest city</option><option value="local">Crafting city only</option></select>
+        </label>
+        <label>Sell where
+          <select data-s="sellWhere"><option value="best">Best city (incl. Black Market)</option><option value="local">Crafting city only</option></select>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Production</legend>
+        <label class="check"><input type="checkbox" data-s="useFocus"> Use focus (+59% return bonus)</label>
+        <label>Daily production bonus %
+          <select data-s="dailyBonus" data-num><option value="0">None</option><option value="10">10%</option><option value="20">20%</option></select>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Smart score</legend>
+        <label>Score focus
+          <select data-s="scorePreset">
+            <option value="balanced">Balanced</option>
+            <option value="safe">Safe: liquid, stable, fresh prices</option>
+            <option value="profit">Max profit: weights daily silver highest</option>
+          </select>
+        </label>
+        <p class="hint" style="margin:0">0–100 built from daily profit, margin, liquidity, price freshness, price stability vs 7-day average, and trip risk (red zone, Black Market).</p>
+      </fieldset>
+      <fieldset>
+        <legend>Data quality</legend>
+        <label>Max price age (hours) <input type="number" min="1" data-s="maxAgeHours"></label>
+        <label>Order flip: max hours between buy &amp; sell price <input type="number" min="1" data-s="maxGapHours"></label>
+        <label>Black Market order max age (hours) <input type="number" min="1" data-s="bmMaxAgeHours"></label>
+        <label>Spike cap: sale ≤ 7-day avg + % <input type="number" min="0" data-s="spikeCap"></label>
+        <label>Min volume / day <input type="number" min="0" data-s="minVolume"></label>
+        <label>Your market share % <input type="number" min="1" max="100" data-s="marketShare"></label>
+        <label>Order book: ignore listings not seen for (hours) <input type="number" min="1" max="12" data-s="bookMaxAgeHours"></label>
+      </fieldset>
+    </div>
+    <p class="hint">Return rates: city base +18%, refining specialty +40%, crafting specialty +15%, focus +59%; return = bonus ÷ (1 + bonus). “Est./day” = profit × daily volume × your market share.</p>
+  </section>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button role="tab" data-tab="overview" class="active">Overview</button>
+    <button role="tab" data-tab="refining">Refining</button>
+    <button role="tab" data-tab="crafting">Crafting</button>
+    <button role="tab" data-tab="blackmarket">Black Market</button>
+    <button role="tab" data-tab="transport">Transport</button>
+    <button role="tab" data-tab="flip">Order Flip</button>
+    <button role="tab" data-tab="bonuses">City Bonuses</button>
+  </nav>
+
+  <main>
+    <section id="bonus-view" hidden></section>
+    <div id="results-view">
+    <div class="filters" id="filters">
+      <input type="search" id="f-search" placeholder="Search item…">
+      <select id="f-tier"><option value="">All tiers</option></select>
+      <select id="f-ench"><option value="">All enchants</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      <select id="f-cat"><option value="">All categories</option></select>
+      <select id="f-city"><option value="">Any city</option></select>
+      <label class="check"><input type="checkbox" id="f-hide-capped"> Hide spike-capped</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="filters route-bar" data-tabs="transport blackmarket">
+      <label class="inline" data-tabs="transport">Buy in <select data-s="transportFrom" class="city-select"><option value="">Any city</option></select></label>
+      <label class="inline" data-tabs="transport">Sell in <select data-s="transportTo" class="city-select"><option value="">Any city</option></select></label>
+      <label class="check"><input type="checkbox" data-s="includeCaerleon"> Caerleon <span class="sub">(red zone)</span></label>
+      <label class="check"><input type="checkbox" data-s="includeBrecilien"> Brecilien <span class="sub">(via the Mists)</span></label>
+      <label class="inline" data-tabs="transport" title="Buy every listing from the lowest price up to this much above it">Max buy price: lowest + <input type="number" min="0" max="50" step="0.5" data-s="buyRange" class="narrow"> %</label>
+      <span class="book-status" id="book-status" data-tabs="transport"></span>
+    </div>
+    <p class="tab-desc" id="tab-desc"></p>
+    <div class="table-wrap">
+      <table id="table"><thead></thead><tbody></tbody></table>
+    </div>
+    <button class="btn ghost more" id="more" hidden>Show more</button>
+    </div>
+  </main>
+
+  <aside class="drawer" id="drawer" hidden>
+    <button class="close" id="drawer-close" aria-label="Close">×</button>
+    <div id="drawer-body"></div>
+  </aside>
+
+  <footer>
+    Prices: <a href="https://www.albion-online-data.com/" target="_blank" rel="noopener">Albion Online Data Project</a> (crowd-sourced, can be stale) ·
+    Recipes: <a href="https://github.com/ao-data/ao-bin-dumps" target="_blank" rel="noopener">ao-bin-dumps</a>.
+    Always check in-game before committing silver.
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

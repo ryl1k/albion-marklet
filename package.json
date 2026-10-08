@@ -1,0 +1,13 @@
+{
+  "name": "albion-marklet",
+  "version": "1.0.0",
+  "description": "Albion Online market profit calculator: refining, crafting, Black Market and transport flips",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server/server.mjs",
+    "update-data": "node scripts/build-data.mjs --refresh",
+    "test": "node --test test/engine.test.mjs"
+  }
+}
